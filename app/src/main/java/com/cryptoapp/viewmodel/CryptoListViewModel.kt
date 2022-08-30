@@ -7,6 +7,7 @@ import com.cryptoapp.model.CryptoListItem
 import com.cryptoapp.repository.CryptoRepository
 import com.cryptoapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,6 +20,47 @@ class CryptoListViewModel @Inject constructor(
     var cryptoList = mutableStateOf<List<CryptoListItem>>(listOf()) //succes
     var errorMessage = mutableStateOf("") // error
     var isLoading = mutableStateOf(false) // loading
+
+    private var initialCryptoList = listOf<CryptoListItem>() // downloaded data save in list
+    private var isSearchStarting = true
+
+    init {
+        loadCryptos()
+    }
+
+    fun searchCryptoList(query: String) {
+
+        val listToSearch = if (isSearchStarting) {
+            cryptoList.value
+        }
+        else {
+            initialCryptoList
+        }
+
+        viewModelScope.launch(Dispatchers.Default) {
+            if (query.isEmpty()){
+                cryptoList.value = initialCryptoList
+                isSearchStarting = true
+                return@launch
+            }
+
+            val result = listToSearch.filter {
+                it.currency.contains(query.trim(), ignoreCase = true)
+            }
+
+            if (isSearchStarting) {
+                initialCryptoList = cryptoList.value
+                isSearchStarting = false
+            }
+
+            cryptoList.value = result
+
+        }
+
+
+    }
+
+
 
      fun loadCryptos(){
 
